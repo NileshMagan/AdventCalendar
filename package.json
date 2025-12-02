@@ -1,0 +1,12 @@
+{
+  "name": "advent-email-automation",
+  "version": "1.0.0",
+  "description": "Automated daily advent emails for a friend.",
+  "type": "module",
+  "scripts": {
+    "send-today": "node send-email.mjs"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}
