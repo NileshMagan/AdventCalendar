@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Advent Message Editor 🎄</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    header {
+      padding: 16px;
+      background: #111827;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid #1f2937;
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+    header p {
+      margin: 0;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #1d4ed8;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.secondary {
+      background: #374151;
+    }
+    button.danger {
+      background: #b91c1c;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+    main {
+      padding: 12px;
+      max-width: 900px;
+      margin: 0 auto 80px;
+    }
+    .day-card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #1f2937;
+    }
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .day-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .day-meta {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 8px;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea {
+      min-height: 80px;
+    }
+    .field {
+      margin-bottom: 8px;
+    }
+    .pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #111827;
+      color: #9ca3af;
+    }
+    .footer-note {
+      font-size: 11px;
+      color: #6b7280;
+      padding: 10px 16px 16px;
+      text-align: center;
+    }
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal {
+      background: #020617;
+      border-radius: 16px;
+      padding: 16px;
+      max-width: 700px;
+      width: 100%;
+      border: 1px solid #1f2937;
+    }
+    .modal h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .modal textarea {
+      min-height: 200px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .modal-actions {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16a34a;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      display: none;
+      z-index: 40;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Advent Message Editor 🎄</h1>
+    <p>Edit your daily emails on the go. Changes auto-save on this device.</p>
+    <div class="controls">
+      <button id="exportBtn">📤 Export JSON</button>
+      <button id="importBtn" class="secondary">📥 Import JSON</button>
+      <button id="resetBtn" class="danger">🧹 Reset to Blank</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="daysContainer"></div>
+  </main>
+
+  <div class="footer-note">
+    Tip: you can “Add to Home Screen” in your mobile browser settings to make this feel like a real app.
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h2 id="modalTitle">Export / Import JSON</h2>
+      <div class="field">
+        <label for="jsonArea">messages.json content</label>
+        <textarea id="jsonArea"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="modalCancel" class="secondary">Cancel</button>
+        <button id="modalApply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copied!</div>
+
+  <script>
+    const STORAGE_KEY = "advent_messages_v1";
+
+    function createBlankDays() {
+      // Default: 30 days, Dec 1–30 of the current year
+      const year = new Date().getFullYear();
+      const days = [];
+      for (let i = 1; i <= 30; i++) {
+        const d = String(i).padStart(2, "0");
+        days.push({
+          date: `${year}-12-${d}`,
+          subject: `Day ${i} – `,
+          body: ""
+        });
+      }
+      return days;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createBlankDays();
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return createBlankDays();
+        return parsed;
+      } catch (e) {
+        console.error("Failed to load state", e);
+        return createBlankDays();
+      }
+    }
+
+    function saveState(days) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+    }
+
+    let state = loadState();
+
+    const daysContainer = document.getElementById("daysContainer");
+
+    function render() {
+      daysContainer.innerHTML = "";
+      state.forEach((day, index) => {
+        const card = document.createElement("div");
+        card.className = "day-card";
+
+        const header = document.createElement("div");
+        header.className = "day-header";
+
+        const title = document.createElement("div");
+        title.className = "day-title";
+        title.textContent = `Day ${index + 1}`;
+
+        const meta = document.createElement("div");
+        meta.className = "day-meta";
+        meta.innerHTML = `<span class="pill">${day.date}</span>`;
+
+        header.appendChild(title);
+        header.appendChild(meta);
+
+        const dateField = document.createElement("div");
+        dateField.className = "field";
+        const dateLabel = document.createElement("label");
+        dateLabel.textContent = "Date (YYYY-MM-DD)";
+        const dateInput = document.createElement("input");
+        dateInput.type = "text";
+        dateInput.value = day.date;
+        dateInput.addEventListener("input", (e) => {
+          state[index].date = e.target.value;
+          saveState(state);
+        });
+        dateField.appendChild(dateLabel);
+        dateField.appendChild(dateInput);
+
+        const subjectField = document.createElement("div");
+        subjectField.className = "field";
+        const subjectLabel = document.createElement("label");
+        subjectLabel.textContent = "Email subject";
+        const subjectInput = document.createElement("input");
+        subjectInput.type = "text";
+        subjectInput.value = day.subject;
+        subjectInput.addEventListener("input", (e) => {
+          state[index].subject = e.target.value;
+          saveState(state);
+        });
+        subjectField.appendChild(subjectLabel);
+        subjectField.appendChild(subjectInput);
+
+        const bodyField = document.createElement("div");
+        bodyField.className = "field";
+        const bodyLabel = document.createElement("label");
+        bodyLabel.textContent = "Email body (plain text)";
+        const bodyArea = document.createElement("textarea");
+        bodyArea.value = day.body;
+        bodyArea.addEventListener("input", (e) => {
+          state[index].body = e.target.value;
+          saveState(state);
+        });
+        bodyField.appendChild(bodyLabel);
+        bodyField.appendChild(bodyArea);
+
+        card.appendChild(header);
+        card.appendChild(dateField);
+        card.appendChild(subjectField);
+        card.appendChild(bodyField);
+
+        daysContainer.appendChild(card);
+      });
+    }
+
+    render();
+
+    // Modal / JSON import-export
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const jsonArea = document.getElementById("jsonArea");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalApply = document.getElementById("modalApply");
+    const modalCancel = document.getElementById("modalCancel");
+    const toast = document.getElementById("toast");
+
+    let modalMode = "export"; // or "import"
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 1500);
+    }
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      modalMode = "export";
+      modalTitle.textContent = "Export messages.json";
+      const data = JSON.stringify(state, null, 2);
+      jsonArea.value = data;
+      modalApply.textContent = "Copy to clipboard";
+      modalBackdrop.style.display = "flex";
+    });
+
+    document.getElementById("importBtn").addEventListener("click", () => {
+      modalMode = "import";
+      modalTitle.textContent = "Import messages.json";
+      jsonArea.value = "";
+      modalApply.textContent = "Import JSON";
+      modalBackdrop.style.display = "flex";
+    });
+
+    modalCancel.addEventListener("click", () => {
+      modalBackdrop.style.display = "none";
+    });
+
+    modalApply.addEventListener("click", async () => {
+      if (modalMode === "export") {
+        jsonArea.select();
+        jsonArea.setSelectionRange(0, 999999);
+        try {
+          await navigator.clipboard.writeText(jsonArea.value);
+          showToast("Copied JSON to clipboard");
+        } catch (e) {
+          showToast("Select & copy manually");
+        }
+      } else {
+        // import mode
+        try {
+          const parsed = JSON.parse(jsonArea.value);
+          if (!Array.isArray(parsed)) throw new Error("Expected an array");
+          state = parsed;
+          saveState(state);
+          render();
+          showToast("Imported JSON");
+          modalBackdrop.style.display = "none";
+        } catch (e) {
+          alert("Invalid JSON: " + e.message);
+        }
+      }
+    });
+
+    // Reset
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!confirm("Reset all days to blank template?")) return;
+      state = createBlankDays();
+      saveState(state);
+      render();
+      showToast("Reset to blank");
+    });
+  </script>
+</body>
+</html>
