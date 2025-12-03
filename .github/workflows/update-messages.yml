@@ -1,0 +1,32 @@
+name: Update Messages from Web Editor
+
+on:
+  workflow_dispatch:
+    inputs:
+      messages_json:
+        description: 'Updated messages.json content'
+        required: true
+        type: string
+
+jobs:
+  update-messages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Update messages.json
+        run: |
+          echo '${{ github.event.inputs.messages_json }}' > messages.json
+          
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add messages.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📝 Update messages from web editor"
+            git push
+          fi
