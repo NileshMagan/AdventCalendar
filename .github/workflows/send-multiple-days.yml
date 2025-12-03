@@ -54,25 +54,39 @@ jobs:
             CURRENT_HOUR=$(TZ=Australia/Melbourne date +%H)
             CURRENT_MIN=$(TZ=Australia/Melbourne date +%M)
             
-            # Parse target time
-            TARGET_HOUR=$(echo $START_TIME | cut -d':' -f1)
-            TARGET_MIN=$(echo $START_TIME | cut -d':' -f2)
+            # Parse target time (remove leading zeros to avoid octal interpretation)
+            TARGET_HOUR=$(echo $START_TIME | cut -d':' -f1 | sed 's/^0*//')
+            TARGET_MIN=$(echo $START_TIME | cut -d':' -f2 | sed 's/^0*//')
+            
+            # Handle empty strings (when removing 0 from "00")
+            if [ -z "$TARGET_HOUR" ]; then TARGET_HOUR=0; fi
+            if [ -z "$TARGET_MIN" ]; then TARGET_MIN=0; fi
+            if [ -z "$CURRENT_HOUR" ]; then CURRENT_HOUR=0; fi
+            if [ -z "$CURRENT_MIN" ]; then CURRENT_MIN=0; fi
+            
+            # Remove leading zeros from current time too
+            CURRENT_HOUR=$(echo $CURRENT_HOUR | sed 's/^0*//')
+            CURRENT_MIN=$(echo $CURRENT_MIN | sed 's/^0*//')
+            if [ -z "$CURRENT_HOUR" ]; then CURRENT_HOUR=0; fi
+            if [ -z "$CURRENT_MIN" ]; then CURRENT_MIN=0; fi
             
             # Convert to minutes since midnight for comparison
-            CURRENT_TOTAL_MIN=$((10#$CURRENT_HOUR * 60 + 10#$CURRENT_MIN))
-            TARGET_TOTAL_MIN=$((10#$TARGET_HOUR * 60 + 10#$TARGET_MIN))
+            CURRENT_TOTAL_MIN=$((CURRENT_HOUR * 60 + CURRENT_MIN))
+            TARGET_TOTAL_MIN=$((TARGET_HOUR * 60 + TARGET_MIN))
             
-            echo "📅 Current Melbourne time: $CURRENT_TIME"
-            echo "🎯 Target start time: $START_TIME"
+            echo "📅 Current Melbourne time: $CURRENT_TIME (${CURRENT_HOUR}:${CURRENT_MIN} = ${CURRENT_TOTAL_MIN} min)"
+            echo "🎯 Target start time: $START_TIME (${TARGET_HOUR}:${TARGET_MIN} = ${TARGET_TOTAL_MIN} min)"
             
             if [ $CURRENT_TOTAL_MIN -lt $TARGET_TOTAL_MIN ]; then
               WAIT_MIN=$((TARGET_TOTAL_MIN - CURRENT_TOTAL_MIN))
               echo "⏳ Waiting $WAIT_MIN minutes until start time..."
+              echo "⏳ Sleep command: sleep $((WAIT_MIN * 60)) seconds"
               sleep $((WAIT_MIN * 60))
+              echo "✅ Wait completed! Starting now..."
             elif [ $CURRENT_TOTAL_MIN -gt $TARGET_TOTAL_MIN ]; then
-              echo "⚠️  Start time has already passed today. Starting immediately."
+              echo "⚠️  Start time ($START_TIME) has already passed today. Starting immediately."
             else
-              echo "✅ It's time! Starting now."
+              echo "✅ It's exactly the right time! Starting now."
             fi
           else
             echo "🚀 No start time specified. Starting immediately."
