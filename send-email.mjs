@@ -16,6 +16,20 @@ function todayDate() {
     }
   }
   
+  // Allow override from multiple days workflow
+  if (process.env.TEST_DATE_OVERRIDE === "true") {
+    const args = process.argv.slice(2);
+    for (let arg of args) {
+      if (arg.includes('TEST_DATE=')) {
+        const testDate = arg.split('=')[1];
+        if (testDate && /^\d{4}-\d{2}-\d{2}$/.test(testDate)) {
+          console.log(`Using workflow override date: ${testDate}`);
+          return testDate;
+        }
+      }
+    }
+  }
+  
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -36,7 +50,9 @@ async function main() {
     DRY_RUN,
   } = process.env;
 
-  const isDryRun = DRY_RUN === "true";
+  const isDryRun = DRY_RUN === "true" || 
+                   process.argv.includes("--dry-run") ||
+                   process.argv.some(arg => arg.includes('DRY_RUN=true'));
 
   if (!FRIEND_EMAIL || !FROM_EMAIL) {
     console.error("Missing email configuration (FRIEND_EMAIL, FROM_EMAIL required).");

@@ -59,7 +59,8 @@ This repo consists of two main components:
 
 ## ⚡ Manual Testing & Triggering
 
-The GitHub Action can now be triggered manually with options:
+### Single Day Testing
+The GitHub Action can be triggered manually with options:
 
 1. Go to your repo's **Actions** tab
 2. Click "Send Advent Email" workflow  
@@ -72,6 +73,30 @@ The GitHub Action can now be triggered manually with options:
 - Test December 25th message: Set test date to `2025-12-25`
 - Preview today's email: Enable "Dry run" checkbox
 - Send today's email normally: Leave both empty and run
+
+### Multi-Day Catch-Up Feature 🚀
+New! Send multiple advent days at once - perfect for catching up on missed days:
+
+1. Go to your repo's **Actions** tab
+2. Click "Send Multiple Advent Days" workflow
+3. Click "Run workflow"
+4. Configure options:
+   - **Days to Send**: Specify days as `1,2,3` or `1-3` or `1,5,10-12`
+   - **Delay Between Emails**: Minutes to wait between each email (default: 2)
+   - **Dry Run**: Preview what would be sent without actually sending
+
+### Multi-Day Examples:
+- **Catch up on missed days**: `1,2,3` (sends Day 1, Day 2, Day 3)
+- **Send a range**: `10-15` (sends Days 10 through 15)
+- **Mixed format**: `1,3,5-7,10` (sends Days 1, 3, 5, 6, 7, 10)
+- **Single day**: `25` (sends just Day 25)
+
+The workflow automatically:
+- ✅ Converts day numbers to proper dates (Day 1 = Dec 1st, etc.)
+- ✅ Sends emails in order with configurable delays (avoids spam filters)
+- ✅ Shows detailed progress logging
+- ✅ Supports dry run mode for testing
+- ✅ Handles both individual days and ranges
 
 ---
 

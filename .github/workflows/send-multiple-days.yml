@@ -1,0 +1,109 @@
+name: Send Multiple Advent Days
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_to_send:
+        description: 'Comma-separated list of days to send (e.g., 1,2,3 or 1-3)'
+        required: true
+        type: string
+        default: '1,2,3'
+      delay_between_sends:
+        description: 'Delay between emails in seconds (to avoid spam filters)'
+        required: false
+        type: number
+        default: 30
+      dry_run:
+        description: 'Dry run - show what would be sent without actually sending'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  send-multiple-days:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Australia/Melbourne
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Parse and send multiple days
+        run: |
+          # Parse the input days
+          DAYS_INPUT="${{ github.event.inputs.days_to_send }}"
+          DELAY="${{ github.event.inputs.delay_between_sends }}"
+          
+          # Function to expand ranges (e.g., 1-3 becomes 1,2,3)
+          expand_ranges() {
+            echo "$1" | sed 's/[[:space:]]//g' | tr ',' '\n' | while IFS= read -r item; do
+              if [[ $item =~ ^[0-9]+-[0-9]+$ ]]; then
+                start=$(echo $item | cut -d'-' -f1)
+                end=$(echo $item | cut -d'-' -f2)
+                seq $start $end | tr '\n' ',' | sed 's/,$//'
+              else
+                echo $item
+              fi
+            done | tr '\n' ',' | sed 's/,$//' | tr ',' '\n'
+          }
+          
+          # Get all days to send
+          DAYS_TO_SEND=$(expand_ranges "$DAYS_INPUT")
+          
+          echo "📅 Days to send: $(echo $DAYS_TO_SEND | tr '\n' ',' | sed 's/,$//')"
+          echo "⏱️ Delay between sends: ${DELAY} seconds"
+          echo "🔍 Dry run mode: ${{ github.event.inputs.dry_run }}"
+          echo ""
+          
+          # Convert days to dates and send emails
+          CURRENT_YEAR=$(date +%Y)
+          COUNT=0
+          TOTAL=$(echo "$DAYS_TO_SEND" | wc -l)
+          
+          for DAY in $DAYS_TO_SEND; do
+            # Skip empty lines
+            if [ -z "$DAY" ]; then
+              continue
+            fi
+            
+            COUNT=$((COUNT + 1))
+            
+            # Format day with leading zero
+            DAY_FORMATTED=$(printf "%02d" $DAY)
+            TEST_DATE="${CURRENT_YEAR}-12-${DAY_FORMATTED}"
+            
+            echo "📧 [$COUNT/$TOTAL] Sending Day $DAY (${TEST_DATE})..."
+            
+            # Send the email
+            npm run send-today
+            
+            # Add delay between emails (except for the last one)
+            if [ $COUNT -lt $TOTAL ]; then
+              echo "⏳ Waiting ${DELAY} seconds before next email..."
+              sleep $DELAY
+              echo ""
+            fi
+            
+          done
+          
+          echo "✅ Completed sending $COUNT advent emails!"
+          
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          FRIEND_EMAIL: ${{ secrets.FRIEND_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          FROM_NAME: ${{ secrets.FROM_NAME }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          TEST_DATE_OVERRIDE: "true"
