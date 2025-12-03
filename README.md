@@ -1,169 +1,181 @@
-# Advent Email Automation 🎄
+# Advent Calendar Automation 🎄
 
-This repo sends a **daily advent email** to your friend automatically during December, using:
+This repo consists of two main components:
 
-- Node.js + [nodemailer](https://nodemailer.com/)
-- Any SMTP-compatible email service (your provider, Brevo, MailerLite SMTP, etc.)
-- GitHub Actions as a free daily scheduler
-
-You **don’t** need to keep your laptop on – GitHub runs it in the cloud every day.
+1. **Automated daily advent emails** sent using GitHub Actions
+2. **Interactive web calendar** to view and manage advent messages
 
 ---
 
-## 1. Files
+## 🎯 Features
 
-- `messages.json` – the list of messages (one per day with `date`, `subject`, and `body`).
-- `send-email.mjs` – Node script that:
-  - figures out today’s date (using Australia/Melbourne time),
-  - finds today’s message,
-  - sends it as an email.
-- `package.json` – project metadata + nodemailer dependency.
-- `.github/workflows/send-advent-email.yml` – GitHub Actions workflow that runs the script every day.
+### Email Automation
+- Automatically sends a daily advent email during December
+- Uses GitHub Actions as a free daily scheduler (no need to keep your laptop on)
+- Supports manual triggering and testing with custom dates
+- Dry run mode to preview emails without sending
 
----
-
-## 2. Why an SMTP service?
-
-Email can’t be sent by “just your password” alone – something has to speak the **SMTP or API protocol** to an email server. You have two main options:
-
-1. **Use your own email account’s SMTP server**
-   - e.g. Gmail, Outlook, etc.
-   - For Gmail you typically need an **app password** (not your real password) and may need to enable 2FA.
-   - This is fine for a low-volume project like this.
-
-2. **Use a dedicated email provider’s SMTP**
-   - e.g. Brevo, MailerSend, Mailjet, etc. (many have free tiers).
-   - They give you an SMTP host, port, username and password (API key) which you plug into this project.
-   - Often better deliverability and fewer spam issues.
-
-Either way, from this project’s point of view, it’s just SMTP credentials in environment variables.
-
-> If you run this **locally** with a cron job instead of GitHub Actions, you can still use your normal email provider’s SMTP (e.g. Gmail app password) – the code is exactly the same.
+### Web Calendar App
+- **Responsive design** - works great on mobile and desktop
+- **Swipe navigation** - swipe left/right to navigate between days
+- **Calendar picker** - jump to any specific day instantly
+- **Today indicator** - shows which day is today
+- **Touch-friendly** - optimized for mobile use
 
 ---
 
-## 3. Setup Steps
+## 📱 Using the Web App
 
-### 3.1. Create a GitHub repository
+### Main Calendar View
+- Open `index.html` in your browser or visit your GitHub Pages URL
+- Swipe left/right to navigate between days
+- Tap the "📅 Go to Day" button to jump to a specific day
+- The app automatically opens to today's message (if available)
 
-1. Create a new repo on GitHub (public or private).
-2. Download this project folder and **push it** to that repo:
-   - `git init`
-   - `git remote add origin <your-repo-url>`
-   - `git add .`
-   - `git commit -m "Advent email automation"`
-   - `git push -u origin main`
+### Navigation Options
+- **Swipe**: Touch-drag left or right to change days
+- **Arrow buttons**: Click/tap the navigation arrows on desktop
+- **Keyboard**: Use left/right arrow keys
+- **Calendar picker**: Tap the calendar button to jump to any day
+- **Direct URLs**: Bookmark specific days
 
-GitHub automatically detects the workflow file in `.github/workflows/send-advent-email.yml`.
+### Mobile Experience
+- Add to home screen for app-like experience
+- Full touch gesture support
+- Responsive design adapts to screen size
 
 ---
 
-### 3.2. Install dependencies locally (optional but recommended for testing)
+## 🛠️ Files Structure
 
-If you want to test from your machine first:
+- `index.html` – Main advent calendar web app (viewer)
+- `editor.html` – Message editor interface (for content creation)
+- `messages.json` – The advent messages data
+- `send-email.mjs` – Email sending script
+- `package.json` – Project dependencies
+- `.github/workflows/send-advent-email.yml` – GitHub Actions automation
 
+---
+
+## ⚡ Manual Testing & Triggering
+
+The GitHub Action can now be triggered manually with options:
+
+1. Go to your repo's **Actions** tab
+2. Click "Send Advent Email" workflow  
+3. Click "Run workflow"
+4. Options available:
+   - **Test Date**: Override date (YYYY-MM-DD) for testing specific days
+   - **Dry Run**: Preview what would be sent without actually sending email
+
+### Examples:
+- Test December 25th message: Set test date to `2025-12-25`
+- Preview today's email: Enable "Dry run" checkbox
+- Send today's email normally: Leave both empty and run
+
+---
+
+## 🔧 Setup Steps
+
+### For Web Calendar (GitHub Pages)
+1. The web calendar works automatically once you push to GitHub
+2. Enable GitHub Pages in repo settings (if you want public access)
+3. Visit `https://yourusername.github.io/your-repo-name` to view the calendar
+
+### For Email Automation
+
+#### GitHub Secrets Setup
+In your GitHub repo settings, add these secrets:
+
+**Required for sending emails:**
+- `SMTP_HOST` – e.g. `smtp.gmail.com`
+- `SMTP_PORT` – e.g. `587` (STARTTLS) or `465` (SSL)
+- `SMTP_USER` – your SMTP username/email
+- `SMTP_PASS` – your SMTP password or app password
+- `SMTP_SECURE` – `"true"` for port 465, `"false"` for port 587
+- `FRIEND_EMAIL` – recipient's email address
+- `FROM_EMAIL` – sender email address
+- `FROM_NAME` – (optional) sender display name
+
+#### Local Testing
 ```bash
 npm install
+
+# Test sending today's email (dry run)
+DRY_RUN=true FRIEND_EMAIL=test@example.com FROM_EMAIL=you@example.com npm run send-today
+
+# Test specific date
+TEST_DATE=2025-12-25 DRY_RUN=true FRIEND_EMAIL=test@example.com FROM_EMAIL=you@example.com npm run send-today
 ```
 
-You can then run:
+---
 
+## 📧 Email Provider Setup
+
+### Option 1: Gmail (Personal)
+1. Enable 2-factor authentication
+2. Generate an app password: Google Account → Security → App passwords
+3. Use these settings:
+   - `SMTP_HOST`: `smtp.gmail.com`
+   - `SMTP_PORT`: `587`
+   - `SMTP_SECURE`: `false`
+   - `SMTP_USER`: your Gmail address
+   - `SMTP_PASS`: the app password (not your regular password)
+
+### Option 2: Email Service Provider
+Use services like Brevo, MailerSend, Mailjet (many have free tiers):
+- Better deliverability
+- More reliable for automation
+- Usually provide SMTP credentials directly
+
+---
+
+## ⏰ Scheduling
+
+The workflow runs daily at **7:30 AM Australia/Melbourne time**.
+
+To change the schedule:
+1. Edit `.github/workflows/send-advent-email.yml`
+2. Update the `cron` expression (remember it uses UTC time)
+3. Example for 8:00 AM Melbourne → `0 21 * * *` (21:00 UTC previous day)
+
+---
+
+## 🎨 Customizing Messages
+
+### Using the Web Editor
+1. Open `editor.html` in your browser
+2. Edit messages directly in the interface
+3. Export the JSON and copy to `messages.json` in your repo
+
+### Direct Editing
+Edit `messages.json` with your advent messages. Each entry needs:
+```json
+{
+  "date": "2025-12-01",
+  "subject": "Day 1 - Welcome!",
+  "body": "Your advent message here..."
+}
+```
+
+---
+
+## 🚀 Deployment Options
+
+### GitHub Pages (Recommended)
+- Enable in repo settings → Pages → Source: GitHub Actions or main branch
+- Calendar will be available at `https://yourusername.github.io/your-repo-name`
+
+### Local Development
 ```bash
-SMTP_HOST=...
-SMTP_PORT=...
-SMTP_USER=...
-SMTP_PASS=...
-SMTP_SECURE=false FRIEND_EMAIL=friend@example.com FROM_EMAIL=you@example.com FROM_NAME="Advent Calendar" npm run send-today
+# Start local server
+python3 -m http.server 8000
+# Visit http://localhost:8000
 ```
 
-That will send **today’s** email once.
+### Custom Hosting
+Upload `index.html`, `messages.json`, and any other assets to any web hosting service.
 
 ---
 
-### 3.3. Configure messages
-
-Open `messages.json`.
-
-- Each entry has:
-  - `date`: `YYYY-MM-DD` (currently set for December 2025 – change the year if needed),
-  - `subject`: email subject line,
-  - `body`: plain-text content (with `\n` for newlines).
-
-If you want to re-use this in another year:
-
-- Either update all `date` fields to the new year, **or**
-- Change them to match the year you want before December starts.
-
----
-
-### 3.4. Add GitHub Secrets
-
-In your GitHub repo:
-
-1. Go to **Settings → Secrets and variables → Actions → New repository secret**.
-2. Add the following secrets:
-
-- `SMTP_HOST` – e.g. `smtp.gmail.com` or your provider’s host.
-- `SMTP_PORT` – e.g. `587` (STARTTLS) or `465` (SSL).
-- `SMTP_USER` – your SMTP username (email address or API key).
-- `SMTP_PASS` – your SMTP password or API key.
-- `SMTP_SECURE` – `"true"` if using port 465, otherwise `"false"`.
-- `FRIEND_EMAIL` – her email address.
-- `FROM_EMAIL` – the email address your emails will come from.
-- `FROM_NAME` – (optional) friendly display name, e.g. `Nilesh` or `Advent Calendar`.
-
-> **Note:** You should **not** commit these values into the repo; that’s why they go into “Secrets”.
-
----
-
-## 4. How the GitHub Action works
-
-The workflow in `.github/workflows/send-advent-email.yml`:
-
-- Runs every day at **7:30 AM Australia/Melbourne time** (cron is `30 20 * * *` in UTC for December).
-- Checks out your repo.
-- Installs Node.js and dependencies.
-- Runs `npm run send-today` with your secrets exposed as environment variables.
-
-You can also trigger it manually from the **Actions** tab via the `workflow_dispatch` event if you want to test it.
-
----
-
-## 5. Changing the send time
-
-If you want to change the email time:
-
-1. Edit `.github/workflows/send-advent-email.yml`.
-2. Adjust the `cron` line under `on.schedule`.
-
-Remember: cron uses **UTC**, so you’ll need to convert from Australia/Melbourne time.
-
-Example:
-- Melbourne 8:00 AM in December (UTC+11) → `21:00` (previous day) UTC → `0 21 * * *`.
-
-You can use any online “cron time UTC converter” if you don’t want to do it manually.
-
----
-
-## 6. Running everything locally instead (no GitHub Actions)
-
-If you’d prefer not to use GitHub at all, you can:
-
-1. Put this folder on a machine that’s always on (e.g. a small VPS or your home server).
-2. Install dependencies: `npm install`.
-3. Use a system scheduler:
-   - Linux/macOS: `cron`
-   - Windows: Task Scheduler  
-4. Schedule a daily run of:
-
-```bash
-cd /path/to/advent-email-automation
-# export or set your SMTP + email env vars, then:
-npm run send-today
-```
-
-In that case, yes – you can use **your own email account’s SMTP credentials** locally (e.g. Gmail app password) and never touch GitHub.
-
----
-
-Enjoy making her December extra magical ✨
+Enjoy creating magical December moments! ✨🎄

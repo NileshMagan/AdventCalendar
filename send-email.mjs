@@ -7,6 +7,15 @@ async function loadMessages() {
 }
 
 function todayDate() {
+  // Allow override for testing
+  if (process.env.TEST_DATE) {
+    const testDate = process.env.TEST_DATE.trim();
+    if (testDate && /^\d{4}-\d{2}-\d{2}$/.test(testDate)) {
+      console.log(`Using test date: ${testDate}`);
+      return testDate;
+    }
+  }
+  
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -24,24 +33,35 @@ async function main() {
     FRIEND_EMAIL,
     FROM_EMAIL,
     FROM_NAME,
+    DRY_RUN,
   } = process.env;
 
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS || !FRIEND_EMAIL || !FROM_EMAIL) {
-    console.error("Missing one or more required environment variables.");
+  const isDryRun = DRY_RUN === "true";
+
+  if (!FRIEND_EMAIL || !FROM_EMAIL) {
+    console.error("Missing email configuration (FRIEND_EMAIL, FROM_EMAIL required).");
+    process.exit(1);
+  }
+
+  if (!isDryRun && (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS)) {
+    console.error("Missing SMTP configuration for sending email.");
     process.exit(1);
   }
 
   const secure = SMTP_SECURE === "true";
 
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure,
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
-    },
-  });
+  let transporter;
+  if (!isDryRun) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT),
+      secure,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+  }
 
   const messages = await loadMessages();
   const today = todayDate();
@@ -60,8 +80,17 @@ async function main() {
     text: msg.body,
   };
 
-  await transporter.sendMail(mailOptions);
-  console.log(`Sent advent email for ${today} to ${FRIEND_EMAIL}.`);
+  if (isDryRun) {
+    console.log(`DRY RUN - Would send email for ${today}:`);
+    console.log(`From: ${mailOptions.from}`);
+    console.log(`To: ${mailOptions.to}`);
+    console.log(`Subject: ${mailOptions.subject}`);
+    console.log(`Body:\n${mailOptions.text}`);
+    console.log(`\nDry run complete - no email was actually sent.`);
+  } else {
+    await transporter.sendMail(mailOptions);
+    console.log(`Sent advent email for ${today} to ${FRIEND_EMAIL}.`);
+  }
 }
 
 main().catch((err) => {

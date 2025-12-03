@@ -4,7 +4,17 @@ on:
   schedule:
     # Runs every day at 7:30 AM Melbourne time (20:30 UTC previous day)
     - cron: "30 20 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_date:
+        description: 'Override date for testing (YYYY-MM-DD format, leave empty for today)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run - show what would be sent without actually sending'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   send-email:
@@ -23,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Send today’s advent email
+      - name: Send today's advent email
         run: npm run send-today
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -34,3 +44,5 @@ jobs:
           FRIEND_EMAIL: ${{ secrets.FRIEND_EMAIL }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
           FROM_NAME: ${{ secrets.FROM_NAME }}
+          TEST_DATE: ${{ github.event.inputs.test_date }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
