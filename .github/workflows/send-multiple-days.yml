@@ -1,9 +1,6 @@
 name: Send Multiple Advent Days
 
 on:
-  schedule:
-    # Optional: Uncomment and set time for automatic catch-up runs
-    # - cron: "0 21 * * *"  # 8:00 AM Melbourne time (21:00 UTC previous day)
   workflow_dispatch:
     inputs:
       days_to_send:
