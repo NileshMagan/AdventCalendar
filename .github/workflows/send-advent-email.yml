@@ -3,6 +3,11 @@ name: Send Advent Email
 on:
   schedule:
     # Runs every day at 7:30 AM Melbourne time (20:30 UTC previous day)
+    # To change time: Update the cron expression below
+    # Examples: 
+    #   "0 21 * * *"  = 8:00 AM Melbourne (21:00 UTC previous day)
+    #   "30 21 * * *" = 8:30 AM Melbourne (21:30 UTC previous day)
+    #   "0 22 * * *"  = 9:00 AM Melbourne (22:00 UTC previous day)
     - cron: "30 20 * * *"
   workflow_dispatch:
     inputs:

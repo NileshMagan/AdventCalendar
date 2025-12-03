@@ -82,7 +82,8 @@ New! Send multiple advent days at once - perfect for catching up on missed days:
 3. Click "Run workflow"
 4. Configure options:
    - **Days to Send**: Specify days as `1,2,3` or `1-3` or `1,5,10-12`
-   - **Delay Between Emails**: Minutes to wait between each email (default: 2)
+   - **Start Time**: When to begin sending (HH:MM Melbourne time, e.g., `07:30`)
+   - **Delay Between Emails**: Seconds to wait between each email (default: 30)
    - **Dry Run**: Preview what would be sent without actually sending
 
 ### Multi-Day Examples:
@@ -90,6 +91,13 @@ New! Send multiple advent days at once - perfect for catching up on missed days:
 - **Send a range**: `10-15` (sends Days 10 through 15)
 - **Mixed format**: `1,3,5-7,10` (sends Days 1, 3, 5, 6, 7, 10)
 - **Single day**: `25` (sends just Day 25)
+- **Scheduled start**: Set start time to `07:30` to begin at 7:30 AM Melbourne time
+
+### Timing Features:
+- ✅ **Immediate start**: Leave start time empty to send right away
+- ✅ **Delayed start**: Set time like `07:30` to wait until that time
+- ✅ **Smart waiting**: If start time has passed, begins immediately
+- ✅ **Melbourne timezone**: All times are in Australia/Melbourne timezone
 
 The workflow automatically:
 - ✅ Converts day numbers to proper dates (Day 1 = Dec 1st, etc.)
@@ -155,14 +163,31 @@ Use services like Brevo, MailerSend, Mailjet (many have free tiers):
 
 ---
 
-## ⏰ Scheduling
+## ⏰ Scheduling & Timing
 
-The workflow runs daily at **7:30 AM Australia/Melbourne time**.
+### Daily Email Schedule
+The daily workflow currently runs at **7:30 AM Australia/Melbourne time**.
 
-To change the schedule:
+**To change the daily email time:**
 1. Edit `.github/workflows/send-advent-email.yml`
-2. Update the `cron` expression (remember it uses UTC time)
-3. Example for 8:00 AM Melbourne → `0 21 * * *` (21:00 UTC previous day)
+2. Update the `cron` expression in the schedule section
+3. Common times (Melbourne → UTC):
+   - `7:00 AM` → `"0 20 * * *"` 
+   - `7:30 AM` → `"30 20 * * *"` (current)
+   - `8:00 AM` → `"0 21 * * *"`
+   - `8:30 AM` → `"30 21 * * *"`
+   - `9:00 AM` → `"0 22 * * *"`
+
+### Multi-Day Timing Options
+When using the "Send Multiple Advent Days" workflow:
+- **Immediate**: Leave start time empty to send right away
+- **Delayed**: Set start time (e.g., `07:30`) to wait until that time
+- **Smart**: If start time already passed today, sends immediately
+
+### Time Zone Notes
+- All times are in **Australia/Melbourne** timezone
+- GitHub Actions uses UTC internally, but the workflows convert automatically
+- Cron expressions use UTC time (Melbourne time minus 11 hours during daylight saving)
 
 ---
 

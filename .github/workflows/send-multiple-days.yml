@@ -1,6 +1,9 @@
 name: Send Multiple Advent Days
 
 on:
+  schedule:
+    # Optional: Uncomment and set time for automatic catch-up runs
+    # - cron: "0 21 * * *"  # 8:00 AM Melbourne time (21:00 UTC previous day)
   workflow_dispatch:
     inputs:
       days_to_send:
@@ -8,6 +11,11 @@ on:
         required: true
         type: string
         default: '1,2,3'
+      start_time:
+        description: 'When to start sending (HH:MM in Melbourne time, leave empty for immediate)'
+        required: false
+        type: string
+        default: ''
       delay_between_sends:
         description: 'Delay between emails in seconds (to avoid spam filters)'
         required: false
@@ -38,6 +46,41 @@ jobs:
 
       - name: Parse and send multiple days
         run: |
+          # Check if start time is specified
+          START_TIME="${{ github.event.inputs.start_time }}"
+          
+          if [ -n "$START_TIME" ]; then
+            echo "⏰ Start time specified: $START_TIME Melbourne time"
+            
+            # Get current Melbourne time
+            CURRENT_TIME=$(TZ=Australia/Melbourne date +%H:%M)
+            CURRENT_HOUR=$(TZ=Australia/Melbourne date +%H)
+            CURRENT_MIN=$(TZ=Australia/Melbourne date +%M)
+            
+            # Parse target time
+            TARGET_HOUR=$(echo $START_TIME | cut -d':' -f1)
+            TARGET_MIN=$(echo $START_TIME | cut -d':' -f2)
+            
+            # Convert to minutes since midnight for comparison
+            CURRENT_TOTAL_MIN=$((10#$CURRENT_HOUR * 60 + 10#$CURRENT_MIN))
+            TARGET_TOTAL_MIN=$((10#$TARGET_HOUR * 60 + 10#$TARGET_MIN))
+            
+            echo "📅 Current Melbourne time: $CURRENT_TIME"
+            echo "🎯 Target start time: $START_TIME"
+            
+            if [ $CURRENT_TOTAL_MIN -lt $TARGET_TOTAL_MIN ]; then
+              WAIT_MIN=$((TARGET_TOTAL_MIN - CURRENT_TOTAL_MIN))
+              echo "⏳ Waiting $WAIT_MIN minutes until start time..."
+              sleep $((WAIT_MIN * 60))
+            elif [ $CURRENT_TOTAL_MIN -gt $TARGET_TOTAL_MIN ]; then
+              echo "⚠️  Start time has already passed today. Starting immediately."
+            else
+              echo "✅ It's time! Starting now."
+            fi
+          else
+            echo "🚀 No start time specified. Starting immediately."
+          fi
+          
           # Parse the input days
           DAYS_INPUT="${{ github.event.inputs.days_to_send }}"
           DELAY="${{ github.event.inputs.delay_between_sends }}"
