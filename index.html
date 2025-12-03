@@ -342,6 +342,9 @@
       font-size: 14px;
       font-family: inherit;
       resize: vertical;
+      /* Ensure form elements are interactive */
+      pointer-events: all;
+      touch-action: manipulation;
     }
     .edit-field textarea {
       min-height: 120px;
@@ -365,6 +368,8 @@
       font-size: 12px;
       cursor: pointer;
       border: none;
+      pointer-events: all;
+      touch-action: manipulation;
     }
     .save-btn {
       background: #10b981;
@@ -379,6 +384,11 @@
     }
     .view-mode .edit-content {
       display: none;
+    }
+    
+    /* Disable swipe gestures in edit mode */
+    .edit-mode .container {
+      touch-action: auto;
     }
     /* Disable text selection on swipe areas */
     .container {
@@ -609,14 +619,14 @@
     }
     
     function handleStart(clientX) {
-      if (isTransitioning) return;
+      if (isTransitioning || isEditMode) return;
       startX = clientX;
       currentX = clientX;
       isDragging = true;
     }
     
     function handleMove(clientX) {
-      if (!isDragging || isTransitioning) return;
+      if (!isDragging || isTransitioning || isEditMode) return;
       
       currentX = clientX;
       const deltaX = currentX - startX;
@@ -631,7 +641,7 @@
     }
     
     function handleEnd() {
-      if (!isDragging || isTransitioning) return;
+      if (!isDragging || isTransitioning || isEditMode) return;
       
       const deltaX = currentX - startX;
       const threshold = window.innerWidth * 0.3; // 30% of screen width
@@ -657,10 +667,19 @@
     
     // Touch events
     function handleTouchStart(e) {
+      // Don't handle touch events on form elements in edit mode
+      if (isEditMode && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON')) {
+        return;
+      }
       handleStart(e.touches[0].clientX);
     }
     
     function handleTouchMove(e) {
+      // Don't handle touch events on form elements in edit mode
+      if (isEditMode && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON')) {
+        return;
+      }
+      if (!isDragging || isTransitioning || isEditMode) return;
       e.preventDefault(); // Prevent scrolling
       handleMove(e.touches[0].clientX);
     }
@@ -671,11 +690,19 @@
     
     // Mouse events
     function handleMouseStart(e) {
+      // Don't handle mouse events on form elements in edit mode
+      if (isEditMode && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON')) {
+        return;
+      }
       e.preventDefault();
       handleStart(e.clientX);
     }
     
     function handleMouseMove(e) {
+      // Don't handle mouse events on form elements in edit mode
+      if (isEditMode && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON')) {
+        return;
+      }
       handleMove(e.clientX);
     }
     
@@ -749,11 +776,15 @@
         editBtn.classList.add('active');
         container.classList.add('edit-mode');
         container.classList.remove('view-mode');
+        // Disable swipe navigation in edit mode
+        container.style.touchAction = 'auto';
       } else {
         editBtn.textContent = '✏️ Edit';
         editBtn.classList.remove('active');
         container.classList.add('view-mode');
         container.classList.remove('edit-mode');
+        // Re-enable swipe navigation in view mode
+        container.style.touchAction = 'pan-x';
       }
       
       // Update all cards
