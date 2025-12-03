@@ -82,34 +82,50 @@ jobs:
           DAYS_INPUT="${{ github.event.inputs.days_to_send }}"
           DELAY="${{ github.event.inputs.delay_between_sends }}"
           
-          # Function to expand ranges (e.g., 1-3 becomes 1,2,3)
-          expand_ranges() {
-            echo "$1" | sed 's/[[:space:]]//g' | tr ',' '\n' | while IFS= read -r item; do
-              if [[ $item =~ ^[0-9]+-[0-9]+$ ]]; then
-                start=$(echo $item | cut -d'-' -f1)
-                end=$(echo $item | cut -d'-' -f2)
-                seq $start $end | tr '\n' ',' | sed 's/,$//'
+          echo "🔧 Input days: $DAYS_INPUT"
+          
+          # Expand ranges and create final day list
+          EXPANDED_DAYS=""
+          
+          # Split by comma and process each item
+          IFS=',' read -ra DAY_ITEMS <<< "$(echo $DAYS_INPUT | sed 's/[[:space:]]//g')"
+          for item in "${DAY_ITEMS[@]}"; do
+            if [[ $item =~ ^[0-9]+-[0-9]+$ ]]; then
+              # Handle range like "1-3"
+              start=$(echo $item | cut -d'-' -f1)
+              end=$(echo $item | cut -d'-' -f2)
+              for day in $(seq $start $end); do
+                if [ -z "$EXPANDED_DAYS" ]; then
+                  EXPANDED_DAYS="$day"
+                else
+                  EXPANDED_DAYS="$EXPANDED_DAYS,$day"
+                fi
+              done
+            else
+              # Handle single day
+              if [ -z "$EXPANDED_DAYS" ]; then
+                EXPANDED_DAYS="$item"
               else
-                echo $item
+                EXPANDED_DAYS="$EXPANDED_DAYS,$item"
               fi
-            done | tr '\n' ',' | sed 's/,$//' | tr ',' '\n'
-          }
+            fi
+          done
           
-          # Get all days to send
-          DAYS_TO_SEND=$(expand_ranges "$DAYS_INPUT")
-          
-          echo "📅 Days to send: $(echo $DAYS_TO_SEND | tr '\n' ',' | sed 's/,$//')"
+          echo "📅 Expanded days: $EXPANDED_DAYS"
           echo "⏱️ Delay between sends: ${DELAY} seconds"
           echo "🔍 Dry run mode: ${{ github.event.inputs.dry_run }}"
           echo ""
           
+          # Convert comma-separated days to array for processing
+          IFS=',' read -ra DAYS_TO_SEND <<< "$EXPANDED_DAYS"
+          TOTAL=${#DAYS_TO_SEND[@]}
+          
           # Convert days to dates and send emails
           CURRENT_YEAR=$(date +%Y)
           COUNT=0
-          TOTAL=$(echo "$DAYS_TO_SEND" | wc -l)
           
-          for DAY in $DAYS_TO_SEND; do
-            # Skip empty lines
+          for DAY in "${DAYS_TO_SEND[@]}"; do
+            # Skip empty values
             if [ -z "$DAY" ]; then
               continue
             fi
@@ -122,8 +138,8 @@ jobs:
             
             echo "📧 [$COUNT/$TOTAL] Sending Day $DAY (${TEST_DATE})..."
             
-            # Send the email
-            npm run send-today
+            # Send the email with proper environment variables
+            TEST_DATE="$TEST_DATE" TEST_DATE_OVERRIDE="true" npm run send-today
             
             # Add delay between emails (except for the last one)
             if [ $COUNT -lt $TOTAL ]; then
